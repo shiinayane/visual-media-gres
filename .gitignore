@@ -37,3 +37,11 @@ results/*.pkl
 results/log_*.txt
 !results/tables/
 !results/figures/
+
+# --- latex aux ---
+report/*.aux
+report/*.log
+report/*.out
+report/*.fls
+report/*.fdb_latexmk
+report/*.synctex.gz

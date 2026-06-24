@@ -11,7 +11,10 @@ This repo reproduces the ReLA baseline on gRefCOCO, quantifies **two failure mod
 abstain-or-clarify detector** on the frozen model — turning GRES's no-target / low-confidence
 signals into an explicit "ask or abstain instead of guessing" policy for human-robot use.
 
-> Report: `report/report.md` (export to PDF before submission). Repo URL: [shiinayane/visual-media-gres](https://github.com/shiinayane/visual-media-gres).
+> Report: **`report/report.tex`** is the canonical, submitted report — a self-contained two-column
+> academic LaTeX source (standard packages only) that builds `report/report.pdf` (4 pages) via
+> `cd report && latexmk -pdf report.tex`. `report/report.md` is the earlier Markdown draft kept for
+> reference; do **not** rebuild the PDF from it. Repo URL: [shiinayane/visual-media-gres](https://github.com/shiinayane/visual-media-gres).
 
 ## Why this setup is non-trivial
 
@@ -94,7 +97,7 @@ Metrics (ported 1:1 from the official evaluator, `scripts/metrics.py`):
 scripts/    gres_lib, metrics, run_inference, failure_no_target, failure_multi_target,
             abstain_detector, make_figures
 results/    *_records.pkl (signals), tables/*.json, figures/*.png
-report/     report.md (+ figures) -> export report.pdf
+report/     report.tex (canonical) -> report.pdf ; report.md (draft) ; figures/
 patches/    source patches applied to third_party/ReLA
 setup.sh    one-shot environment build
 ```
