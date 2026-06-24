@@ -91,6 +91,23 @@ patches/    source patches applied to third_party/ReLA
 setup.sh    one-shot environment build
 ```
 
-## Results summary
-See `report/report.md` §7 and `results/tables/`. Headline numbers are filled in there
-once the runs complete; nothing in the report is hand-typed.
+## Results summary (Swin-T, gRefCOCO)
+Regenerate this table any time with `python scripts/report_numbers.py --backbone swin_tiny`.
+
+| | gIoU | cIoU | N-acc | T-acc |
+|---|---|---|---|---|
+| **baseline, val** (paper 56.9/57.7) | 55.76 | 55.64 | 46.3 | 99.9 |
+| + abstain detector, safe τ (val) | 66.92 | 58.22 | 65.0 | 95.1 |
+| **baseline, testA** | 65.03 | 65.42 | 50.6 | 99.0 |
+| + abstain detector, safe τ (testA, held out) | 65.94 | 64.46 | 63.3 | 90.6 |
+
+- **F1 (no-target hallucination):** the model paints a confident mask on **53.7 %** of
+  absent-referent expressions (N-acc 46.3 %); the NT score is bimodal and collapses into the
+  present-target distribution.
+- **F2 (multi-target under-segmentation):** within a multi-target expression it covers the best
+  instance at 0.93 but the worst at only 0.68, and drops an instance entirely 26 % of the time.
+- **Improvement:** a frozen-model abstain/clarify detector. The safety-constrained operating point
+  (T-acc ≥ 0.95) raises gIoU/N-acc on val and **transfers** to held-out testA (N-acc +12.7); the
+  gIoU-optimal threshold overfits val's no-target prior — reported honestly in §7.
+
+Nothing in the report is hand-typed; every table/figure regenerates from `scripts/`.
