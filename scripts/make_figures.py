@@ -62,7 +62,7 @@ def main():
         print("[warn] no items for category=%s. available: %s" % (args.category, cats)); return
 
     rows = len(items)
-    fig, axs = plt.subplots(rows, 3, figsize=(9, 3 * rows))
+    fig, axs = plt.subplots(rows, 3, figsize=(9, 2.5 * rows))
     if rows == 1:
         axs = axs[None, :]
     for i, r in enumerate(items):
