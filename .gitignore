@@ -1,0 +1,29 @@
+# --- data / weights / heavy artifacts (never commit) ---
+datasets/
+data/
+gRefCOCO/
+refcoco*/
+*.pth
+*.pt
+*.ckpt
+checkpoints/
+weights/
+outputs/
+wandb/
+
+# --- python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+*.egg-info/
+
+# --- os / editor ---
+.DS_Store
+.vscode/
+.idea/
+
+# Keep small result tables/figures by force-adding them, e.g.:
+#   git add -f results/*.csv report/figures/*.png
