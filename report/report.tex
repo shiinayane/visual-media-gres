@@ -19,8 +19,8 @@
 \setlist{itemsep=2pt,topsep=3pt,parsep=0pt,leftmargin=1.4em}
 
 % generous-but-tidy section spacing
-\titlespacing*{\section}{0pt}{2.2ex plus .4ex}{1.0ex}
-\titlespacing*{\subsection}{0pt}{1.6ex plus .3ex}{0.6ex}
+\titlespacing*{\section}{0pt}{1.5ex plus .3ex}{0.7ex}
+\titlespacing*{\subsection}{0pt}{1.2ex plus .2ex}{0.5ex}
 \titleformat{\section}{\normalfont\large\bfseries}{\thesection.}{0.5em}{}
 \titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.5em}{}
 
@@ -145,20 +145,22 @@ pass dumps compact per-sample signals to \code{results/*.pkl} and all downstream
 
 % ------------------------------------------------------------------
 \section{Failure case analysis}
-I study two failure conditions on gRefCOCO's official splits, so each claim is a measured rate, not
-an anecdote. F1 (no-target) is analysed on \textbf{val} (63\% of its samples are no-target---the
+I study two failure conditions on gRefCOCO's official splits.
+F1 (no-target) is analysed on \textbf{val} (63\% of its samples are no-target---the
 ideal stress test); F2 (multi-target) on \textbf{testA}, the split that contains a single-target
 baseline to compare against.
 
 \subsection{F1 --- No-target hallucination (primary)}
 \textbf{Setup.} Restrict to the no-target subset of val ($\mathrm{gt\_nt}{=}$True, $n{=}8{,}905$, 63\%
-of val). A \emph{hallucination} is a no-target sample on which the model still emits a non-empty mask.
+of val). A \emph{hallucination} is a no-target sample on which the model still commits to a mask---its
+NT head predicts \emph{not} no-target ($s_\mathrm{nt}<0.5$); equivalently, the hallucination rate is
+$1-$N-acc.
 
 \smallskip\noindent\textbf{Result.} The model hallucinates on \textbf{53.7\%} of no-target samples
 (4{,}784/8{,}905); N-acc\,=\,46.3\%. The opposite error is almost absent: T-acc\,=\,99.9\% (only 7 of
 5{,}324 present-target samples are wrongly called empty). The hallucinated masks are not small
-artefacts---median 7.2\% of the image (mean 9.1\%), mean foreground confidence 0.68: the model tends
-to be \emph{wrong with high confidence}.
+artefacts---median 7.2\% of the image (mean 9.1\%), at a mean foreground confidence of 0.68, well
+above the $0.5$ commit threshold: these are not hesitant predictions.
 
 \smallskip\noindent\textbf{Mechanism.} Figure~\ref{fig:f1a} plots the model's own no-target score
 $s_\mathrm{nt}=\sigma(\mathrm{nt\_logit})_1$ for present vs absent referents. Present-target samples
@@ -170,30 +172,33 @@ Architecturally the NT head is a \emph{single} scalar \textbf{averaged over all 
 a plausible account is that a few regions confidently matching a salient distractor pull the mean
 below $0.5$ and a mask is committed. I logged only the pooled $s_\mathrm{nt}$, not per-region logits,
 so this is consistent with the architecture but not directly verified (Section~8). For a system that
-acts on language, this high-confidence false positive is the most costly error.
+acts on language, this high-confidence false positive is the most costly error; Fig.~\ref{fig:f1b}
+shows representative cases.
 
 \begin{figure}[t]
 \centering
-\begin{minipage}[t]{0.49\linewidth}\centering
-\includegraphics[width=\linewidth]{F1_nt_score_hist.png}
-\caption{No-target score for present vs absent referents. On absent referents the score is bimodal;
-the large low mode collapses inside the present-target distribution, so 53\% fall below $0.5$ and a
-mask is committed.}
+\includegraphics[width=0.58\linewidth]{F1_nt_score_hist.png}
+\caption{No-target score $s_\mathrm{nt}$ for present vs absent referents. On absent referents the
+score is bimodal; the large low mode collapses inside the present-target distribution, so 53\% fall
+below $0.5$ and a mask is committed.}
 \label{fig:f1a}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}\centering
-\includegraphics[width=\linewidth]{qual_nt_hallucination_swin_tiny.png}
-\caption{Each row: one \emph{no-target} expression (left), the empty ground truth (middle), and the
-model's confident hallucinated mask in red (right).}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.5\linewidth]{qual_nt_hallucination_swin_tiny.png}
+\caption{Qualitative no-target cases. Each row: one \emph{no-target} expression (left), the empty
+ground truth (middle), and the model's confident hallucinated mask in red (right).}
 \label{fig:f1b}
-\end{minipage}
 \end{figure}
 
 \subsection{F2 --- Multi-target under-segmentation}
 \textbf{Setup.} I use \textbf{testA} because (unlike val, whose targeted expressions are all
-multi-instance) it has a single-instance baseline (5{,}917 one-target, 5{,}940 two-target, 2{,}895
-three-or-more). For each GT instance I record coverage $=|\mathrm{pred}\cap\mathrm{inst}|/|\mathrm{inst}|$,
-call it a \emph{hit} if $\geq0.5$, and report per-instance recall.
+multi-instance) it has a single-instance baseline: of its 19{,}200 expressions, 14{,}752 have a
+target---5{,}917 one-target, 5{,}940 two-target, 2{,}895 three-or-more (the remaining 4{,}448 are
+no-target). ReLA emits a \emph{single} union mask, so every GT instance of an expression is scored
+against that one prediction: I record coverage $=|\mathrm{pred}\cap\mathrm{inst}|/|\mathrm{inst}|$,
+call it a \emph{hit} if $\geq0.5$ (the conventional cutoff), and report per-instance recall.
 
 \smallskip\noindent\textbf{Result (two effects).} (i)~Per-instance recall is \textbf{flat from one to
 two targets}---0.868 (single) vs 0.881 (two)---then \textbf{collapses to 0.594 at $\geq$3 targets}.
@@ -201,16 +206,17 @@ two targets}---0.868 (single) vs 0.881 (two)---then \textbf{collapses to 0.594 a
 best-covered instance averages 0.92 but the worst only 0.58, and the model \textbf{drops at least one
 instance entirely in 37.8\%} of multi-target testA samples (26.1\% on val). The under-segmentation is
 thus not ``two worse than one on average''; it is a \textbf{capacity ceiling at $\geq$3 targets} plus
-\textbf{lopsided coverage} sacrificing the less salient instance.
+\textbf{lopsided coverage} sacrificing the less salient instance (Fig.~\ref{fig:f2a}).
 
 \smallskip\noindent\textbf{Mechanism.} ReLA predicts a single 2-channel ``target'' mask via an
 \code{einsum} over per-region minimap weights. One mask can represent one region, or two when the soft
-weighting is shared, but cannot spread mass across many disjoint instances---matching both the sharp
-drop at $\geq$3 and the dropped weaker instance within a pair.
+weighting is shared, but cannot spread mass across many disjoint instances---consistent with both the
+sharp drop at $\geq$3 and the dropped weaker instance within a pair (an architectural account, not an
+ablation); Fig.~\ref{fig:f2b} shows examples.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.86\linewidth]{F2_recall_by_count.png}
+\includegraphics[width=0.78\linewidth]{F2_recall_by_count.png}
 \caption{testA. \emph{Left:} per-instance recall is flat for 1--2 targets (0.87, 0.88) but collapses
 at $\geq$3 (0.59). \emph{Right:} within a multi-target expression the best instance is covered at 0.92
 but the worst at only 0.58 (38\% of samples drop one entirely).}
@@ -219,7 +225,7 @@ but the worst at only 0.58 (38\% of samples drop one entirely).}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.62\linewidth]{qual_multi_target_swin_tiny.png}
+\includegraphics[width=0.52\linewidth]{qual_multi_target_swin_tiny.png}
 \caption{Qualitative multi-target cases. Each row is one expression; ground-truth instances in green
 (middle), prediction in red (right). The model frequently captures the salient instance and drops the
 other.}
@@ -246,8 +252,9 @@ separately. Calibration gives $\tau=0.23$ (gIoU-optimal), $\tau_\mathrm{safe}=0.
 
 % ------------------------------------------------------------------
 \section{Before/after comparison}
-$\tau$ is calibrated on \textbf{val} and applied \textbf{unchanged} to held-out \textbf{testA}
-(Tables~\ref{tab:val}--\ref{tab:testa}; trade-off in Fig.~\ref{fig:tradeoff}).
+Results on both splits are in Tables~\ref{tab:val}--\ref{tab:testa} (trade-off in
+Fig.~\ref{fig:tradeoff}); $\tau$ is calibrated on \textbf{val} and transferred \textbf{unchanged} to
+held-out \textbf{testA}.
 
 \begin{table}[t]
 \centering\small
@@ -260,7 +267,7 @@ here, so read this as the calibration curve, not a result.}
 op.\ point & gIoU & cIoU & N-acc & T-acc \\
 \midrule
 baseline & 55.76 & 55.64 & 46.3 & 99.9 \\
-safe $0.38$ & \textbf{66.9} & \textbf{58.2} & \textbf{65.0} & 95.1 \\
+safe $0.38$ & 66.9 & 58.2 & 65.0 & 95.1 \\
 gIoU-opt $0.23$ & 74.1 & 52.4 & 87.7 & 62.5 \\
 \bottomrule
 \end{tabular}
@@ -285,18 +292,19 @@ On testA, with $\tau$ transferred unchanged, the detector is best described as a
 re-weighting} rather than a segmentation-quality gain: the safe point raises N-acc by 12.7 points
 (50.6$\to$63.3) at a cost of 8.4 points of T-acc (99.0$\to$90.6), with overlap metrics essentially
 unchanged (gIoU $+0.9$, within the reproduction gap; cIoU $-1.0$). What it buys is a tunable,
-calibrated willingness to abstain on unsatisfiable instructions at a bounded retention cost. The
-aggressive gIoU-optimal $\tau$ \emph{does not transfer}: tuned to val's 63\%-no-target prior, on the
-23\%-no-target testA it over-abstains and lowers gIoU by 11 points. Hence only the T-acc-constrained
+calibrated willingness to abstain on unsatisfiable instructions at a capped loss in target retention.
+The aggressive gIoU-optimal $\tau$ \emph{does not transfer}: tuned to val's 63\%-no-target prior, on
+the 23\%-no-target testA it over-abstains and lowers gIoU by roughly 11 points. Hence only the
+T-acc-constrained
 point transfers safely, and a practical detector would calibrate $\tau$ to the deployment base-rate.
 The \textbf{CLARIFY} branch (separate from abstention) fired on 1{,}131 val / 1{,}712 testA committed
 predictions at $\tau{=}0.23$---multi-component masks for which ``which one?'' is a reasonable
-alternative; an illustrative remedy for F2, reported as a trigger count since gRefCOCO has no
+alternative; a candidate remedy for F2, reported only as a trigger count since gRefCOCO has no
 clarification label.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.86\linewidth]{abstain_tradeoff.png}
+\includegraphics[width=0.78\linewidth]{abstain_tradeoff.png}
 \caption{Abstain/clarify trade-off, calibrated on val. \emph{Left:} N-acc vs T-acc as $\tau$ sweeps;
 the default \code{argmax} point (black) sits at the extreme no-abstention corner, the safe (orange)
 and gIoU-optimal (green) points move up the frontier. \emph{Right:} gIoU and cIoU vs $\tau$, both
@@ -319,6 +327,8 @@ would likely do better.
 \item On held-out data the detector is a safety re-weighting, not a quality gain, and a single global
 $\tau$ depends on the no-target base-rate. The CLARIFY trigger is a geometric heuristic reported only
 as a count (no clarification label; it does not yet read the expression).
+\item The detector is not compared against a naive abstention rule (e.g.\ abstaining by mask area
+alone); it combines two model signals, and isolating each one's contribution is left to future work.
 \end{itemize}
 
 % ------------------------------------------------------------------
@@ -338,17 +348,15 @@ log is in \code{GENAI\_USAGE\_LOG.md}.
 \section{Discussion}
 The two failure modes share an origin: ReLA makes a single hard decision at inference (one mask, one
 $0.5$ no-target threshold), whereas the generalized task is partly about \emph{uncertainty}---whether
-a referent exists at all, and how many. The no-target and multi-target subsets are exactly where
-committing to a single \code{argmax} is the wrong default. The detector adds no capacity; it reuses
-the uncertainty the model already encodes and turns it into three actions (act, abstain, ask), giving
-a calibrated, tunable abstention at a bounded retention cost that transfers to a held-out split. For a
-benchmark aimed at human--robot use, this argues for an explicit abstain/clarify option in how
-grounding models are both \emph{scored} and \emph{operated}, since these are the cases where a
-confident-but-wrong mask is most costly. The gains are modest and prior-dependent; natural next steps
-are a small learned calibrator over the four signals, an expression-aware CLARIFY trigger, and an
-abstention-aware metric (e.g.\ risk--coverage) reported alongside gIoU/cIoU.
+a referent exists, and how many. The detector adds no capacity; it reuses uncertainty the model
+already encodes, turning one \code{argmax} into three actions (act, abstain, ask). The gain is modest
+and prior-dependent, but it survives transfer to a held-out split. For a benchmark aimed at
+human--robot use, this argues for an explicit abstain/clarify option in how grounding models are both
+\emph{scored} and \emph{operated}. Natural next steps are a small learned calibrator over the four
+signals, an expression-aware CLARIFY trigger, and an abstention-aware metric (e.g.\ risk--coverage)
+reported alongside gIoU/cIoU.
 
-\vspace{1.5ex}
+\vspace{1ex}
 \noindent\rule{\linewidth}{0.3pt}\\[0.4ex]
 {\small\emph{Citation:} Chang Liu, Henghui Ding, Xudong Jiang. ``GRES: Generalized Referring
 Expression Segmentation.'' \textbf{CVPR 2023} (Highlight). arXiv:2306.00968.}
