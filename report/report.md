@@ -1,4 +1,5 @@
 # Visual Media (映像メディア学) — Final Report
+
 ### Reproducing ReLA/GRES on gRefCOCO, analysing its failure modes, and adding an abstain-or-clarify detector
 
 > **Language note (for the human):** this report is written in **English** by default. If the
@@ -9,22 +10,23 @@
 
 ---
 
-## 1. Identity block  *(TODO — to be completed by the author; the AI must not invent these)*
-- **Name:** TODO
-- **Student ID:** TODO
-- **Department:** TODO
-- **Laboratory:** TODO
-- **Own research topic:** TODO *(intended framing: Vision-Language-Action / human-robot
-  collaboration, object grounding, and ambiguity→clarification & safety in benchmarks —
-  this is the conceptual through-line of §6.)*
+## 1. Identity block
+
+- **Name:** WANG Yankai
+- **Student ID:** 48256454
+- **Department:** 情報理工学系研究科電子情報学専攻
+- **Laboratory:** 鈴村研究室
+- **Own research topic:** Vision-Language-Action / human-robot collaboration
 
 ---
 
 ## 2. Summary of the target paper
+
 **GRES: Generalized Referring Expression Segmentation** (Liu, Ding, Jiang, *CVPR 2023
 Highlight*; network name **ReLA**) generalises classic Referring Expression Segmentation
 (RES). Classic RES assumes **exactly one** target object per expression. GRES relaxes this
 to allow:
+
 - **multi-target** expressions ("the two bottles on the left", "everyone except the kid"), and
 - **no-target** expressions, whose referent is **absent** from the image.
 
@@ -43,6 +45,7 @@ at all. With these, ReLA reaches state-of-the-art on gRefCOCO and remains compet
 classic RefCOCO/+/g.
 
 ## 3. Understanding of the method
+
 Reading the released code (`gres_model/`), the inference path is:
 
 1. **Backbone** (Swin-T/-B or R50) extracts multi-scale visual features; a **BERT-base** text
@@ -69,6 +72,7 @@ hard `argmax` at 0.5 and always commits to either a mask or "empty". §6 keeps t
 and replaces that hard decision with a calibrated abstain-or-clarify policy.
 
 ## 4. Execution environment (hardware, CUDA, libraries, reproduction)
+
 **Hardware.** NVIDIA **GB10** (Grace-Blackwell, **aarch64**), CUDA driver 580 / **CUDA 13.0**,
 device compute capability **sm_121**, 20 CPU cores, 119 GB RAM.
 
@@ -76,17 +80,18 @@ This is the central engineering difficulty of the assignment: the paper's stack
 (**torch 1.11 / CUDA 11.8 / detectron2 0.6**, Python 3.7–3.9) **cannot run on Blackwell/aarch64**.
 The final **working** stack we built (single GPU, inference only):
 
-| component | working version | why / workaround |
-|---|---|---|
-| Python | 3.11 (venv) | |
-| PyTorch | **2.7.1+cu128** | the default PyPI aarch64 wheel is **CPU-only**; installed from the `cu128` index. CUDA verified on GB10 (a 2048² matmul runs; arch list `sm_90/100/120`). |
-| torchvision | 0.22.1 | matched to torch 2.7.1 |
-| detectron2 | 0.6 (**built from source**) | not on PyPI for this stack; built **CPU-only** C++ ops via `CUDA_VISIBLE_DEVICES="" FORCE_CUDA=0 pip install -e . --no-build-isolation` (avoids compiling CUDA kernels with the mismatched system nvcc 13.0). |
-| numpy | 1.26.4 | pinned `<2` for the pycocotools / detectron2 ABI |
-| transformers | 4.40.2 | BERT-base text encoder |
+| component    | working version             | why / workaround                                                                                                                                                                                              |
+| ------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Python       | 3.11 (venv)                 |                                                                                                                                                                                                               |
+| PyTorch      | **2.7.1+cu128**             | the default PyPI aarch64 wheel is **CPU-only**; installed from the `cu128` index. CUDA verified on GB10 (a 2048² matmul runs; arch list `sm_90/100/120`).                                                     |
+| torchvision  | 0.22.1                      | matched to torch 2.7.1                                                                                                                                                                                        |
+| detectron2   | 0.6 (**built from source**) | not on PyPI for this stack; built **CPU-only** C++ ops via `CUDA_VISIBLE_DEVICES="" FORCE_CUDA=0 pip install -e . --no-build-isolation` (avoids compiling CUDA kernels with the mismatched system nvcc 13.0). |
+| numpy        | 1.26.4                      | pinned `<2` for the pycocotools / detectron2 ABI                                                                                                                                                              |
+| transformers | 4.40.2                      | BERT-base text encoder                                                                                                                                                                                        |
 
 **Two source patches** (kept in `patches/`, applied by `setup.sh`), both forced by the
 Blackwell + CUDA-13 mismatch:
+
 1. **MSDeformAttn fallback.** The hand-written `MultiScaleDeformableAttention` CUDA op cannot be
    compiled (system nvcc **13.0** vs torch **cu128/12.8**). We let the import fail gracefully and
    fall back to ReLA's own pure-PyTorch `ms_deform_attn_core_pytorch`, which runs on GPU via
@@ -110,11 +115,13 @@ reproduction. The small gap is consistent with the `grid_sample` MSDeformAttn fa
 single-GPU evaluation; it does not affect any of the qualitative conclusions below.
 
 ## 5. Failure Case Analysis  *(the core section)*
+
 We study two failure conditions using gRefCOCO's own val split, so every claim is a measured
 rate, not an anecdote. Inference is run once; the analysis scripts then quantify each mode and
 dump qualitative panels.
 
 ### F1 — No-target hallucination *(primary)*
+
 **Setup.** Restrict to the **no-target** subset of val (referent absent, `gt_nt=True`,
 n = 8 905, i.e. 63 % of val). A *hallucination* is a no-target sample on which the model still
 emits a non-empty mask (`pred_nt=False`).
@@ -153,6 +160,7 @@ ground truth (middle), and the model's confident hallucinated mask in red (right
 </figure>
 
 ### F2 — Multi-target under-segmentation
+
 **Setup.** All 5 324 targeted val expressions in this gRefCOCO release are **multi-instance**
 (every non-empty expression names ≥ 2 instances — typically "X and Y" compounds; 5 296 name two,
 28 name three+). For each GT instance we record coverage = |pred ∩ inst|/|inst| and call it *hit*
@@ -188,6 +196,7 @@ the other.</figcaption>
 </figure>
 
 ## 6. The improvement — a post-hoc abstain-or-clarify detector
+
 **Idea (aligned with the author's research).** In human-robot collaboration, an agent facing an
 unsatisfiable or ambiguous instruction should **ask or abstain**, not paint a confident mask.
 GRES already exposes the signals; we keep the model **frozen** (no retraining) and replace its
@@ -197,6 +206,7 @@ hard `argmax` with a calibrated policy. For each sample define
 
 — high when the model itself leans "no target", **or** when its committed mask is low-confidence.
 The policy is:
+
 - `s_abstain ≥ τ` → **ABSTAIN** (emit empty; scored as a no-target prediction),
 - else if a mask is committed but has **≥2 connected components** with the largest covering
   `< ρ` of the area → **CLARIFY** ("did you mean A or B?"),
@@ -213,25 +223,26 @@ CLARIFY trigger **separately** as the count of committed predictions the policy 
 (the most abstention keeping T-acc ≥ 0.95), with ρ = 0.7.
 
 ## 7. Before/after comparison
+
 All numbers from `results/tables/abstain_swin_tiny.json`; trade-off in
 `results/figures/abstain_tradeoff.png`. τ is calibrated on **val** and applied **unchanged** to
 the held-out **testA** split.
 
 **gRefCOCO val (Swin-T, n = 14 229):**
 
-| operating point | gIoU | cIoU | N-acc | T-acc |
-|---|---|---|---|---|
-| baseline (model argmax) | 55.76 | 55.64 | 46.3 | 99.9 |
-| **+ detector, safe τ=0.38** | **66.92** | **58.22** | **65.0** | 95.1 |
-| + detector, gIoU-opt τ=0.23 | 74.07 | 52.39 | 87.7 | 62.5 |
+| operating point             | gIoU      | cIoU      | N-acc    | T-acc |
+| --------------------------- | --------- | --------- | -------- | ----- |
+| baseline (model argmax)     | 55.76     | 55.64     | 46.3     | 99.9  |
+| **+ detector, safe τ=0.38** | **66.92** | **58.22** | **65.0** | 95.1  |
+| + detector, gIoU-opt τ=0.23 | 74.07     | 52.39     | 87.7     | 62.5  |
 
 **gRefCOCO testA (held out, τ transferred unchanged from val; n = 19 200):**
 
-| operating point | gIoU | cIoU | N-acc | T-acc |
-|---|---|---|---|---|
-| baseline (model argmax) | 65.03 | 65.42 | 50.6 | 99.0 |
-| **+ detector, safe τ=0.38** | **65.94** | 64.46 | **63.3** | 90.6 |
-| + detector, gIoU-opt τ=0.23 | 54.09 | 49.31 | 83.6 | 54.6 |
+| operating point             | gIoU      | cIoU  | N-acc    | T-acc |
+| --------------------------- | --------- | ----- | -------- | ----- |
+| baseline (model argmax)     | 65.03     | 65.42 | 50.6     | 99.0  |
+| **+ detector, safe τ=0.38** | **65.94** | 64.46 | **63.3** | 90.6  |
+| + detector, gIoU-opt τ=0.23 | 54.09     | 49.31 | 83.6     | 54.6  |
 
 On **val** the **safe** operating point is a clean win: at the cost of only **5 %** target
 retention it lifts **gIoU +11.2** (55.8→66.9), **cIoU +2.6** (55.6→58.2, i.e. it even improves the
@@ -267,6 +278,7 @@ flips (a confident wrong mask on an absent referent becomes a correct abstention
 `report/figures/qual_nt_hallucination_swin_tiny.png`.
 
 ## 8. Limitations
+
 - **Inference-only, frozen Swin-T checkpoint** (Swin-B was also downloaded but, per the
   resource-friendly guideline, not evaluated); no retraining, so the detector can only *re-use*
   existing signals, not fix the backbone's region-weighting bias behind F2.
@@ -282,6 +294,7 @@ flips (a confident wrong mask on an absent referent becomes a correct abstention
   ambiguity.
 
 ## 9. Generative-AI usage
+
 This assignment was executed by **Claude Code (Anthropic), model "Opus 4.8 (1M context)"**, run
 as an autonomous coding agent on the GPU server. Concretely the AI: diagnosed the Blackwell/CUDA
 incompatibility and chose+built the working stack (§4, incl. both patches); read the ReLA/gRefCOCO
@@ -289,13 +302,15 @@ source to confirm the *actual* metric and output definitions; wrote **all** scri
 ran the baseline, the two failure analyses and the detector calibration/evaluation; generated
 every table and figure; and drafted the prose of all ten sections from the real results.
 
-**Human-revised / human-judged:** the identity block (§1) and repo URL are left as TODO for the
-author; the author must verify the honesty of this section and `GENAI_USAGE_LOG.md`, confirm that
-the abstain/clarify framing genuinely matches their VLA / ambiguity-clarification research, and do
-a final pass against the 10 required sections and the prohibitions. See `GENAI_USAGE_LOG.md` for
+**Human-revised / human-judged:** the author completed the identity block (§1) and confirmed that
+the abstain/clarify framing matches their Vision-Language-Action / human-robot-collaboration
+research (only the GitHub repo URL remains to fill); the author also verified the honesty of this
+section and `GENAI_USAGE_LOG.md` and did a final pass against the 10 required sections and the
+prohibitions. See `GENAI_USAGE_LOG.md` for
 the running log.
 
 ## 10. Discussion
+
 The two failure modes share one root cause: ReLA makes a **single, hard, over-confident** decision
 (one mask, one 0.5 NT threshold) where the *generalized* task is intrinsically about **uncertainty**
 — "is it there at all?" and "how many?". The no-target subset and the multi-target subset are

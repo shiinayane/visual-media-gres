@@ -26,9 +26,11 @@
 5. **Report draft.** Drafted the English prose of all 10 sections from the real results.
 
 ## What a human still must verify / revise
-- The identity block (name, ID, department, lab, own research topic) — TODO placeholders.
+- [x] Identity block (name, ID, department, lab, research topic) — **completed by the author**
+  (WANG Yankai, Suzumura lab, VLA / human-robot collaboration).
+- [ ] GitHub repo URL — still to be filled by the author after creating the repo.
 - The honesty of this very log.
-- That the conceptual framing (abstain/clarify ↔ the author's VLA / ambiguity-clarification
+- That the conceptual framing (abstain/clarify ↔ the author's VLA / human-robot-collaboration
   research) genuinely matches the author's intent.
 - A final read of the report against the 10 required sections and the prohibitions.
 
