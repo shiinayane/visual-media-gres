@@ -1,0 +1,19 @@
+{
+  "backbone": "swin_tiny",
+  "split": "val",
+  "n_total": 14229,
+  "n_empty": 8905,
+  "n_targeted": 5324,
+  "N_acc": 0.46277372262773725,
+  "T_acc": 0.9986851990984222,
+  "hallucination_rate": 0.5372262773722628,
+  "n_hallucinations": 4784,
+  "halluc_area_frac_mean": 0.09098724372909699,
+  "halluc_area_frac_median": 0.0717145,
+  "halluc_mask_conf_mean": 0.6789742989130434,
+  "nt_score_empty_mean": 0.48275306517533345,
+  "nt_score_targeted_mean": 0.011847124030134151,
+  "gIoU_all": 55.763313243081996,
+  "cIoU_all": 55.64177255966832,
+  "nt_score_empty_below_0.5_frac": 0.5335204941044357
+}

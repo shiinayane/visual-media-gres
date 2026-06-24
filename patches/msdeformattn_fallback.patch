@@ -1,0 +1,35 @@
+diff --git a/gres_model/modeling/pixel_decoder/ops/functions/ms_deform_attn_func.py b/gres_model/modeling/pixel_decoder/ops/functions/ms_deform_attn_func.py
+index 3c8d64a..d32ed7e 100644
+--- a/third_party/ReLA/gres_model/modeling/pixel_decoder/ops/functions/ms_deform_attn_func.py
++++ b/third_party/ReLA/gres_model/modeling/pixel_decoder/ops/functions/ms_deform_attn_func.py
+@@ -18,15 +18,24 @@ import torch.nn.functional as F
+ from torch.autograd import Function
+ from torch.autograd.function import once_differentiable
+ 
++# [PATCHED for Blackwell/aarch64 + CUDA13 reproduction]
++# The hand-written MultiScaleDeformableAttention CUDA op cannot be compiled here
++# because the system CUDA toolkit (13.0) mismatches the PyTorch build (cu128/12.8).
++# Instead of hard-failing, we fall back to the pure-PyTorch implementation
++# `ms_deform_attn_core_pytorch`, which runs on GPU via F.grid_sample. The forward()
++# in modules/ms_deform_attn.py already switches to this fallback when the custom op
++# is unavailable, so inference produces identical results (just somewhat slower).
+ try:
+     import MultiScaleDeformableAttention as MSDA
+-except ModuleNotFoundError as e:
+-    info_string = (
+-        "\n\nPlease compile MultiScaleDeformableAttention CUDA op with the following commands:\n"
+-        "\t`cd gres_model/modeling/pixel_decoder/ops`\n"
+-        "\t`sh make.sh`\n"
++    _HAS_CUDA_MSDA = True
++except ModuleNotFoundError:
++    import warnings
++    MSDA = None
++    _HAS_CUDA_MSDA = False
++    warnings.warn(
++        "MultiScaleDeformableAttention CUDA op not found; using pure-PyTorch "
++        "grid_sample fallback (GPU). This is expected on the Blackwell/CUDA13 setup."
+     )
+-    raise ModuleNotFoundError(info_string)
+ 
+ 
+ class MSDeformAttnFunction(Function):

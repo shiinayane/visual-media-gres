@@ -27,3 +27,13 @@ env/
 
 # Keep small result tables/figures by force-adding them, e.g.:
 #   git add -f results/*.csv report/figures/*.png
+
+# --- vendored third-party source (re-cloned + patched by setup.sh) ---
+third_party/
+models/
+
+# --- regenerable inference dumps & logs (tables/ and figures/ ARE kept) ---
+results/*.pkl
+results/log_*.txt
+!results/tables/
+!results/figures/
