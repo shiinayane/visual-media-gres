@@ -56,21 +56,25 @@ failure-mode analysis and a post-hoc abstain-or-clarify detector}
 \textbf{Name:} WANG Yankai & \textbf{Student ID:} 48256454 \\
 \end{tabular}\\[2pt]
 \textbf{Department:} 情報理工学系研究科 電子情報学専攻\\
-\textbf{Laboratory:} 鈴村研究室 (Suzumura Lab) \quad
+\textbf{Laboratory:} 鈴村研究室 (Suzumura Lab)\\
 \textbf{Research topic:} Vision--Language--Action / human--robot collaboration.
 
 % ------------------------------------------------------------------
 \section{Target paper}
 \textbf{GRES: Generalized Referring Expression Segmentation} (Liu, Ding, Jiang, \emph{CVPR 2023
-Highlight}; network \textbf{ReLA}) generalizes classic Referring Expression Segmentation (RES).
-Classic RES assumes \emph{exactly one} target per expression. GRES relaxes this to allow
-\textbf{multi-target} expressions (``the two bottles on the left'') and \textbf{no-target}
-expressions, whose referent is \emph{absent} from the image. To support and measure this, the
-authors release \textbf{gRefCOCO} (COCO train2014 images, RefCOCO-style expressions;
-train/val/testA/testB) with an evaluation protocol: \textbf{gIoU} (mean per-sample IoU; a correct
-no-target sample scores 1), \textbf{cIoU} (cumulative intersection / cumulative union),
-\textbf{N-acc} (no-target recall $=\mathrm{TP}/(\mathrm{TP}{+}\mathrm{FN})$), \textbf{T-acc}
-(target retention $=\mathrm{TN}/(\mathrm{TN}{+}\mathrm{FP})$) and \textbf{Pr@\{0.7,0.8,0.9\}}.
+Highlight}; network \textbf{ReLA}) generalizes classic Referring Expression Segmentation, which
+assumes \emph{exactly one} target per expression. GRES additionally allows \emph{multi-target}
+expressions (``the two bottles on the left'') and \emph{no-target} expressions, whose referent is
+absent from the image. To support and measure this, the authors release \textbf{gRefCOCO} (COCO
+train2014 images, RefCOCO-style expressions; train/val/testA/testB splits) together with an
+evaluation protocol of five metrics:
+\begin{itemize}
+\item \textbf{gIoU} --- mean per-sample IoU (a correctly predicted no-target sample scores~1);
+\item \textbf{cIoU} --- cumulative intersection over cumulative union;
+\item \textbf{N-acc} --- no-target recall, $\mathrm{TP}/(\mathrm{TP}+\mathrm{FN})$;
+\item \textbf{T-acc} --- target retention, $\mathrm{TN}/(\mathrm{TN}+\mathrm{FP})$;
+\item \textbf{Pr@\{0.7,0.8,0.9\}} --- precision at IoU thresholds $0.7/0.8/0.9$.
+\end{itemize}
 ReLA is built on Mask2Former/Detectron2 and reaches state of the art on gRefCOCO.
 
 % ------------------------------------------------------------------
