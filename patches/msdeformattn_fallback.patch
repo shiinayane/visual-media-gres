@@ -1,3 +1,20 @@
+diff --git a/gres_model/modeling/pixel_decoder/msdeformattn.py b/gres_model/modeling/pixel_decoder/msdeformattn.py
+index 0063604..c3393af 100644
+--- a/third_party/ReLA/gres_model/modeling/pixel_decoder/msdeformattn.py
++++ b/third_party/ReLA/gres_model/modeling/pixel_decoder/msdeformattn.py
+@@ -94,7 +94,11 @@ class MSDeformAttnTransformerEncoderOnly(nn.Module):
+         mask_flatten = torch.cat(mask_flatten, 1)
+         lvl_pos_embed_flatten = torch.cat(lvl_pos_embed_flatten, 1)
+         spatial_shapes = torch.as_tensor(spatial_shapes, dtype=torch.long, device=src_flatten.device)
+-        level_start_index = torch.cat((spatial_shapes.new_zeros((1, )), spatial_shapes.prod(1).cumsum(0)[:-1]))
++        # [PATCHED for Blackwell/sm_121] int64 `.prod(1)` falls to the nvrtc jiterator,
++        # whose CUDA-12.8 nvrtc rejects -arch=compute_121. The elementwise product over
++        # the two columns is identical and uses a precompiled kernel.
++        _hw_prod = spatial_shapes[:, 0] * spatial_shapes[:, 1]
++        level_start_index = torch.cat((spatial_shapes.new_zeros((1, )), _hw_prod.cumsum(0)[:-1]))
+         valid_ratios = torch.stack([self.get_valid_ratio(m) for m in masks], 1)
+ 
+         # encoder
 diff --git a/gres_model/modeling/pixel_decoder/ops/functions/ms_deform_attn_func.py b/gres_model/modeling/pixel_decoder/ops/functions/ms_deform_attn_func.py
 index 3c8d64a..d32ed7e 100644
 --- a/third_party/ReLA/gres_model/modeling/pixel_decoder/ops/functions/ms_deform_attn_func.py

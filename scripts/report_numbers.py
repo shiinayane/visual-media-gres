@@ -38,12 +38,12 @@ def main():
             print(f"  {k:32s} {r[k]}")
 
     print("=" * 70)
-    print("F2  MULTI-TARGET UNDER-SEGMENTATION (val)")
-    r = load(f"F2_multi_target_{bb}_val.json")
+    print("F2  MULTI-TARGET UNDER-SEGMENTATION (testA -- has single-target baseline)")
+    r = load(f"F2_multi_target_{bb}_testA.json")
     if r:
-        for k in ["n_single", "n_multi", "inst_recall_single", "inst_recall_two",
-                  "inst_recall_three_plus", "mIoU_single", "mIoU_multi",
-                  "multi_with_a_fully_missed_instance"]:
+        for k in ["n_single", "n_two", "n_three_plus", "inst_recall_single", "inst_recall_two",
+                  "inst_recall_three_plus", "best_instance_coverage_mean",
+                  "worst_instance_coverage_mean", "worst_instance_missed_frac"]:
             print(f"  {k:34s} {r[k]}")
 
     print("=" * 70)

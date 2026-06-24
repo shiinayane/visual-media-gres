@@ -76,8 +76,8 @@ def main():
     ax.axvline(0.5, color="k", ls="--", lw=1, label="default decision (0.5)")
     ax.set_xlabel("no-target score  $s_{nt}=\\sigma(\\mathrm{nt\\_logit})_{[1]}$")
     ax.set_ylabel("density")
-    ax.set_title("F1: on absent referents the NT score is bimodal -- ~46%% correctly ->1,\n"
-                 "but the majority collapse to ~0, indistinguishable from present targets\n(%s, %s)"
+    ax.set_title("F1: on absent referents the NT score is bimodal; a large low mode\n"
+                 "collapses to ~0 (inside the present-target mass) so 53%% fall below 0.5\n(%s, %s)"
                  % (args.backbone, args.split))
     ax.legend(fontsize=8)
     fig.tight_layout()

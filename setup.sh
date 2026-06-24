@@ -39,7 +39,7 @@ cd "$ROOT"
 # 3b) patch ReLA's MSDeformAttn so a missing custom CUDA op falls back to the
 #     pure-PyTorch (GPU grid_sample) implementation instead of hard-failing.
 git apply patches/msdeformattn_fallback.patch || \
-    echo "   (patch already applied or applied manually -- see patches/README)"
+    echo "   (patch already applied or applied manually -- see patches/README.md)"
 
 echo ">> setup complete. Activate with:  source .venv/bin/activate"
 echo ">> next: download data + weights (see README 'Data & weights')."

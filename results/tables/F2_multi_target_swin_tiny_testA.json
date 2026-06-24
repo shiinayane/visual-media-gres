@@ -1,0 +1,20 @@
+{
+  "backbone": "swin_tiny",
+  "split": "testA",
+  "n_single": 5917,
+  "n_multi": 8835,
+  "n_two": 5940,
+  "n_three_plus": 2895,
+  "inst_recall_single": 0.8680074362007775,
+  "inst_recall_multi": 0.7381073302861012,
+  "inst_recall_two": 0.8808080808080808,
+  "inst_recall_three_plus": 0.5938032005447735,
+  "mean_instance_coverage_single": 0.8032917018759506,
+  "mean_instance_coverage_multi": 0.6947424961909598,
+  "mIoU_single": 0.7052170168571408,
+  "mIoU_multi": 0.6867275728027311,
+  "multi_with_a_fully_missed_instance": 0.3782682512733446,
+  "best_instance_coverage_mean": 0.9180751443123938,
+  "worst_instance_coverage_mean": 0.5753891454442557,
+  "worst_instance_missed_frac": 0.3782682512733446
+}

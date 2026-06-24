@@ -96,29 +96,36 @@ def main():
     for k, v in out.items():
         print("  %-36s %s" % (k, v))
 
-    # ---- figure (left): best vs worst instance coverage = under-segmentation
-    #      (right): per-instance coverage histogram, all instances pooled ----
+    # ---- figure (left): per-instance recall by GT target count (1 / 2 / 3+) --
+    #      shows recall is flat for 1-2 targets but collapses at >=3.
+    #      (right): within-sample best-vs-worst instance coverage = uneven seg.
+    groups = [grp(recs, 1, 1), grp(recs, 2, 2), grp(recs, 3, 999)]
+    labels = ["1", "2", "3+"]
+    recalls = [inst_recall(g)[0] for g in groups]
+    ns = [len(g) for g in groups]
+
     fig, axs = plt.subplots(1, 2, figsize=(11, 4.2))
-    axs[0].bar([0, 1], [best_cov_mean, worst_cov_mean],
+    bars = axs[0].bar(range(3), recalls, color=["#27ae60", "#2980b9", "#c0392b"], width=0.6)
+    for i, (v, n) in enumerate(zip(recalls, ns)):
+        axs[0].text(i, v + 0.01, "%.3f\n(n=%d)" % (v, n), ha="center", fontsize=8)
+    axs[0].set_xticks(range(3)); axs[0].set_xticklabels(labels)
+    axs[0].set_xlabel("# ground-truth target instances")
+    axs[0].set_ylabel("per-instance recall (coverage ≥ 0.5)")
+    axs[0].set_ylim(0, 1)
+    axs[0].set_title("F2: recall is flat for 1–2 targets but collapses at ≥3\n(%s, %s)"
+                     % (args.backbone, args.split))
+
+    axs[1].bar([0, 1], [best_cov_mean, worst_cov_mean],
                color=["#2980b9", "#c0392b"], width=0.55)
     for i, v in enumerate([best_cov_mean, worst_cov_mean]):
-        axs[0].text(i, v + 0.01, "%.2f" % v, ha="center", fontsize=10)
-    axs[0].set_xticks([0, 1])
-    axs[0].set_xticklabels(["best-covered\ninstance", "worst-covered\ninstance"])
-    axs[0].set_ylim(0, 1)
-    axs[0].set_ylabel("coverage  |pred ∩ inst| / |inst|")
-    axs[0].set_title("F2: within a multi-target expression the model grabs one\n"
-                     "instance and drops the other (%s, %s)" % (args.backbone, args.split))
-
-    all_cov = [c for r in multi for c in r["inst_cov"]]
-    axs[1].hist(all_cov, bins=np.linspace(0, 1, 41), color="#e67e22", alpha=0.85)
-    axs[1].axvline(0.5, color="k", ls="--", lw=1, label="hit threshold 0.5")
-    axs[1].set_xlabel("per-instance coverage")
-    axs[1].set_ylabel("# GT instances")
-    axs[1].set_title("Bimodal: instances are either well-covered or missed\n"
-                     "(%d instances, %.0f%% of worst-instances missed)"
-                     % (len(all_cov), 100 * worst_missed_frac))
-    axs[1].legend(fontsize=8)
+        axs[1].text(i, v + 0.01, "%.2f" % v, ha="center", fontsize=10)
+    axs[1].set_xticks([0, 1])
+    axs[1].set_xticklabels(["best-covered\ninstance", "worst-covered\ninstance"])
+    axs[1].set_ylim(0, 1)
+    axs[1].set_ylabel("coverage  |pred ∩ inst| / |inst|")
+    axs[1].set_title("Within a multi-target expression, coverage is very uneven\n"
+                     "(%.0f%% of multi-target samples drop an instance entirely)"
+                     % (100 * worst_missed_frac))
     fig.tight_layout()
     fig.savefig(os.path.join(G.REPO_ROOT, "results", "figures", "F2_recall_by_count.png"), dpi=140)
     print("[saved] F2 tables + figure")
